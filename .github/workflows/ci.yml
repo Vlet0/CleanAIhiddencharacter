@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Demo pipeline + idempotence
+        run: |
+          python demo/make_demo.py
+          python scripts/texclean.py demo/sample_dirty.tex --fix-confusables --fix-mojibake
+          python scripts/texclean.py demo/sample_dirty.docx --fix-mojibake
+          python scripts/texclean.py demo/sample_dirty.clean.tex | grep "nothing to change"
+      - name: No hidden characters survive
+        run: |
+          python - <<'EOF'
+          import re, unicodedata
+          text = open('demo/sample_dirty.clean.tex', encoding='utf-8').read()
+          bad = re.findall('[\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e'
+                           '\u2060-\u2064\u2066-\u206f\ufeff\ufe00-\ufe0f'
+                           '\U000e0000-\U000e007f\U000e0100-\U000e01ef]', text)
+          assert not bad, "hidden characters survived: %r" % bad[:5]
+          print("clean output contains 0 hidden characters")
+          EOF

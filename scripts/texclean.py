@@ -106,6 +106,20 @@ CONFUSABLES = {
     "\u03b1": ("a", "Greek alpha"),
     "\u03bd": ("v", "Greek nu"),
     "\u0261": ("g", "IPA script g"),
+    # uppercase lookalikes (sentence starts, acronyms, all-caps headings)
+    "\u0410": ("A", "Cyrillic A"),
+    "\u0412": ("B", "Cyrillic Ve"),
+    "\u0415": ("E", "Cyrillic Ie"),
+    "\u041a": ("K", "Cyrillic Ka"),
+    "\u041c": ("M", "Cyrillic Em"),
+    "\u041d": ("H", "Cyrillic En"),
+    "\u041e": ("O", "Cyrillic O"),
+    "\u0420": ("P", "Cyrillic Er"),
+    "\u0421": ("C", "Cyrillic Es"),
+    "\u0422": ("T", "Cyrillic Te"),
+    "\u0425": ("X", "Cyrillic Ha"),
+    "\u039f": ("O", "Greek Omicron"),
+    "\u0391": ("A", "Greek Alpha"),
 }
 
 # UTF-8 bytes misinterpreted as latin-1: A+-BF, C2 xx, the curly-quote family
@@ -121,7 +135,7 @@ MATH_ENV = re.compile(
     r"\\begin\{(equation\*?|align\*?|alignat\*?|gather\*?|multline\*?"
     r"|flalign\*?|displaymath|math)\}.*?\\end\{\1\}", re.S)
 DOLLAR2 = re.compile(r"(?<!\\)\$\$.*?(?<!\\)\$\$", re.S)
-DOLLAR1 = re.compile(r"(?<!\\)\$[^$\n]*?(?<!\\)\$")
+DOLLAR1 = re.compile(r"(?<!\\)\$(?:\\.|[^$\\\n])*?\$")
 BRACKET_MATH = re.compile(r"\\\[.*?\\\]", re.S)
 PAREN_MATH = re.compile(r"\\\(.*?\\\)", re.S)
 PROTECTED_PATTERNS = (VERB_ENV, MATH_ENV, DOLLAR2, BRACKET_MATH, PAREN_MATH, DOLLAR1)
@@ -258,7 +272,7 @@ def clean_document(text, args, counts):
 
 def line_col(text, idx):
     line = text.count("\n", 0, idx) + 1
-    col = idx - text.rfind("\n", 0, idx) + 1
+    col = idx - (text.rfind("\n", 0, idx) + 1) + 1
     return line, col
 
 
@@ -309,6 +323,11 @@ def process_text_file(path, args):
         text = text.replace("\r\n", "\n")
 
     clean, n_protected = clean_document(text, args, counts)
+    # the segmentation keeps the space before inline math intact, so the very
+    # end of the file is handled here instead of inside text_pass
+    clean, n = re.subn(r"[ \t]+\Z", "", clean)
+    if n:
+        counts["final line trailing whitespace"] += n
     findings = audit(clean)
 
     out = write_output(path, clean, args)
