@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CleanAIHiddenCharacter — Invisible Character Detector &amp; Cleaner</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #30363d; --text: #e6edf3;
+    --muted: #8b949e; --accent: #2f81f7; --green: #3fb950; --red: #f85149;
+    --yellow: #d29922;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+  }
+  header { padding: 20px 24px 8px; }
+  header h1 { margin: 0 0 4px; font-size: 1.35rem; }
+  header h1 a { color: var(--text); text-decoration: none; }
+  header h1 span { color: var(--accent); }
+  header p { margin: 0; color: var(--muted); font-size: .9rem; }
+  .verdict {
+    margin: 12px 24px 0; padding: 10px 14px; border-radius: 6px;
+    border: 1px solid var(--border); font-size: .95rem; display: none;
+  }
+  .verdict.dirty { display: block; border-color: var(--red); background: rgba(248,81,73,.08); }
+  .verdict.clean { display: block; border-color: var(--green); background: rgba(63,185,80,.08); }
+  .verdict b.dirty { color: var(--red); }
+  .verdict b.clean { color: var(--green); }
+  main {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    padding: 12px 24px 24px; height: calc(100vh - 150px); min-height: 420px;
+  }
+  @media (max-width: 800px) {
+    main { grid-template-columns: 1fr; height: auto; }
+    textarea { height: 260px !important; }
+  }
+  .pane { display: flex; flex-direction: column; min-height: 0; }
+  .pane-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px; gap: 8px;
+  }
+  .pane-head h2 { margin: 0; font-size: .95rem; color: var(--muted); font-weight: 600; }
+  button {
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: .85rem;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  textarea {
+    flex: 1; width: 100%; resize: none; background: var(--panel);
+    color: var(--text); border: 1px solid var(--border); border-radius: 6px;
+    padding: 12px; font-family: ui-monospace, Consolas, "Courier New", monospace;
+    font-size: .85rem; line-height: 1.5; white-space: pre-wrap;
+  }
+  textarea:focus { outline: none; border-color: var(--accent); }
+  .report {
+    margin-top: 10px; max-height: 180px; overflow-y: auto; font-size: .8rem;
+    border: 1px solid var(--border); border-radius: 6px; background: var(--panel);
+    padding: 8px 12px; display: none;
+  }
+  .report.show { display: block; }
+  .report table { border-collapse: collapse; width: 100%; }
+  .report td, .report th { padding: 3px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+  .report th { color: var(--muted); font-weight: 600; }
+  .cp { color: var(--yellow); font-family: ui-monospace, monospace; }
+  .cnt { color: var(--red); font-weight: 700; }
+  footer { padding: 0 24px 16px; color: var(--muted); font-size: .8rem; }
+  footer a { color: var(--accent); }
+  .note { color: var(--muted); font-size: .8rem; margin-top: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1><a href="https://github.com/Vlet0/CleanAIhiddencharacter">Clean<span>AI</span>HiddenCharacter</a></h1>
+  <p>Paste AI-generated or copy-pasted text on the left — hidden Unicode characters
+  (zero-width steganography, bidi controls, tag characters, variation selectors,
+  homoglyphs, mojibake) are detected and stripped in your browser. Nothing is uploaded;
+  all processing is local JavaScript. Renders a LaTeX-safe result.</p>
+</header>
+
+<div id="verdict" class="verdict"></div>
+
+<main>
+  <div class="pane">
+    <div class="pane-head">
+      <h2>Input (paste here)</h2>
+      <span>
+        <label style="font-size:.8rem;color:var(--muted);cursor:pointer">
+          <input type="checkbox" id="opt-review" checked style="vertical-align:-2px">
+          fix homoglyphs &amp; mojibake
+        </label>
+        <button id="btn-demo" title="Load a sample containing every hidden-character class">Load sample</button>
+      </span>
+    </div>
+    <textarea id="input" placeholder="Paste your text / LaTeX here…&#10;Scanning starts automatically." spellcheck="false"></textarea>
+    <div id="report" class="report"></div>
+  </div>
+  <div class="pane">
+    <div class="pane-head">
+      <h2>Result (cleaned)</h2>
+      <span>
+        <button id="btn-copy">Copy</button>
+        <button id="btn-download">Download .tex</button>
+      </span>
+    </div>
+    <textarea id="output" placeholder="Cleaned text appears here." spellcheck="false" readonly></textarea>
+    <div class="note" id="texnote"></div>
+  </div>
+</main>
+
+<footer>
+  Character-level steganography is removed 100% (it lives in invisible codepoints).
+  Statistical token watermarks (green-list / SynthID-Text) live in <i>word choices</i>,
+  not bytes — no tool can remove them. Read the
+  <a href="https://github.com/Vlet0/CleanAIhiddencharacter#background-two-kinds-of-watermark-in-ai-text">background</a>
+  in the repo. ⚠️ Bidi/homoglyph findings may indicate spoofing — review before cleaning.
+</footer>
+
+<script>
+"use strict";
+
+// ---- hidden-character classes (same spec as scripts/texclean.py / SKILL.md) ----
+const CLASSES = [
+  { key: "zero-width",       label: "Zero-width / invisible format",      re: /[\u200b\u200c\u200d\u2060\ufeff\u180e\u2061-\u2064\u206a-\u206f]/g,
+    names: { "\u200b": "ZERO WIDTH SPACE", "\u200c": "ZERO WIDTH NON-JOINER", "\u200d": "ZERO WIDTH JOINER", "\u2060": "WORD JOINER", "\ufeff": "ZERO WIDTH NO-BREAK SPACE (BOM)", "\u180e": "MONGOLIAN VOWEL SEPARATOR", "\u2061": "FUNCTION APPLICATION", "\u2062": "INVISIBLE TIMES", "\u2063": "INVISIBLE SEPARATOR", "\u2064": "INVISIBLE PLUS", "\u206a": "INHIBIT SYMMETRIC SWAP", "\u206b": "ACTIVATE SYMMETRIC SWAP", "\u206c": "INHIBIT ARABIC FORM SHAPING", "\u206d": "ACTIVATE ARABIC FORM SHAPING", "\u206e": "NATIONAL DIGIT SHAPES", "\u206f": "NOMINAL DIGIT SHAPES" } },
+  { key: "bidi",             label: "Bidi controls (reorder text!)",      re: /[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/g,
+    names: { "\u061c":"ARABIC LETTER MARK", "\u200e":"LEFT-TO-RIGHT MARK", "\u200f":"RIGHT-TO-LEFT MARK", "\u202a":"LRE EMBEDDING", "\u202b":"RLE EMBEDDING", "\u202c":"POP DIRECTIONAL", "\u202d":"LRO OVERRIDE", "\u202e":"RLO OVERRIDE", "\u2066":"LRI ISOLATE", "\u2067":"RLI ISOLATE", "\u2068":"FSI FIRST-STRONG", "\u2069":"PDI POP ISOLATE" } },
+  { key: "tags",             label: "Tag characters (hidden ASCII)",      re: /[\u{e0000}-\u{e007f}]/gu,
+    names: c => "TAG " + (c ? "U+" + c.codePointAt(0).toString(16).toUpperCase() : "") },
+  { key: "variation",        label: "Variation selectors (hidden bits)",  re: /[\ufe00-\ufe0f\u{e0100}-\u{e01ef}]/gu,
+    names: c => "VARIATION SELECTOR" },
+  { key: "soft-hyphen",      label: "Soft hyphen",                        re: /[\u00ad]/g, names: { "\u00ad": "SOFT HYPHEN" } },
+  { key: "controls",         label: "Stray control characters",           re: /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g,
+    names: { "\x7f": "DELETE", "\x85": "NEL" } },
+  { key: "confusables",      label: "Homoglyph (lookalike letter)",       re: /[\u0410\u0412\u0415\u041a\u041c\u041d\u041e\u0420\u0421\u0422\u0425\u0430\u0435\u043e\u0440\u0441\u0445\u0443\u0456\u0455\u0458\u04bb\u0501\u0391\u039f\u03b1\u03bd\u03c1\u0261]/g,
+    review: true, fix: true,
+    latin: { "\u0410":"A","\u0412":"B","\u0415":"E","\u041a":"K","\u041c":"M","\u041d":"H","\u041e":"O","\u0420":"P","\u0421":"C","\u0422":"T","\u0425":"X","\u0430":"a","\u0435":"e","\u043e":"o","\u0440":"p","\u0441":"c","\u0445":"x","\u0443":"y","\u0456":"i","\u0455":"s","\u0458":"j","\u04bb":"h","\u0501":"d","\u0391":"A","\u039f":"O","\u03b1":"a","\u03bd":"v","\u03c1":"p","\u0261":"g" } },
+  { key: "mojibake",         label: "Mojibake (UTF-8 read as latin-1)",   re: /\u00c3[\u0080-\u00bf]|\u00c2[\u0080-\u00bf]|\u00e2\u20ac[\u0080-\u00bf]|\u00d0[\u0080-\u00bf]|\u00d1[\u0080-\u00bf]/g,
+    review: true, fix: true },
+];
+
+const CP = c => "U+" + c.codePointAt(0).toString(16).toUpperCase().padStart(4, "0");
+function cpName(c, cls) {
+  if (typeof cls.names === "function") return cls.names(c);
+  return cls.names[c] || "";
+}
+
+// ---- LaTeX-typography pass (prose only — mirrors texclean pass [C]) ----
+function latexTypography(s) {
+  return s
+    .replace(/\u2018/g, "`").replace(/\u2019/g, "'")
+    .replace(/\u201c/g, "``").replace(/\u201d/g, "''")
+    .replace(/\u2013/g, "--").replace(/\u2014/g, "---")
+    .replace(/\u2026/g, "\\ldots{}")
+    .replace(/\u00a9/g, "\\copyright{}")
+    .replace(/\u00ae/g, "\\textregistered{}")
+    .replace(/\u2122/g, "\\texttrademark{}")
+    .replace(/\u00b0/g, "\\textdegree{}");
+}
+
+function analyze(text) {
+  const found = []; // {cls, char, count, first}
+  let total = 0;
+  for (const cls of CLASSES) {
+    const map = new Map();
+    let m;
+    cls.re.lastIndex = 0;
+    while ((m = cls.re.exec(text)) !== null) {
+      const c = m[0];
+      if (!map.has(c)) map.set(c, { count: 0, first: m.index });
+      map.get(c).count++;
+    }
+    for (const [c, info] of map) {
+      found.push({ cls, char: c, cp: CP(c), name: cpName(c, cls), ...info });
+      total += info.count;
+    }
+  }
+  return { found, total };
+}
+
+function fixReviewClasses(s) {
+  for (const cls of CLASSES) {
+    if (!cls.fix) continue;
+    if (cls.key === "confusables") {
+      s = s.replace(cls.re, c => cls.latin[c] || c);
+    } else if (cls.key === "mojibake") {
+      s = s.replace(cls.re, seq => {
+        try { return decodeURIComponent(escape(seq)); }
+        catch (e) { return seq; }
+      });
+    }
+  }
+  return s;
+}
+
+const input = document.getElementById("input");
+const output = document.getElementById("output");
+const reportEl = document.getElementById("report");
+const verdictEl = document.getElementById("verdict");
+const texnoteEl = document.getElementById("texnote");
+
+let lastClean = "";
+
+function run() {
+  const text = input.value;
+  if (!text) {
+    verdictEl.className = "verdict";
+    reportEl.className = "report";
+    output.value = "";
+    texnoteEl.textContent = "";
+    return;
+  }
+  const { found, total } = analyze(text);
+
+  // report table
+  if (found.length) {
+    reportEl.className = "report show";
+    reportEl.innerHTML =
+      "<table><tr><th>Codepoint</th><th>Class</th><th>Name</th><th>Count</th><th></th></tr>" +
+      found.map(f =>
+        `<tr><td class="cp">${f.cp}</td><td>${f.cls.label}</td>` +
+        `<td>${f.name || "—"}</td><td class="cnt">${f.count}</td>` +
+        `<td>${f.cls.review ? (document.getElementById("opt-review").checked ? "fixed" : "review") : "removed"}</td></tr>`).join("") +
+      "</table>";
+  } else {
+    reportEl.className = "report show";
+    reportEl.innerHTML = "<i>No hidden characters found — input is already clean.</i>";
+  }
+
+  if (total > 0) {
+    verdictEl.className = "verdict dirty";
+    verdictEl.innerHTML = `<b class="dirty">⚠ ${total} hidden character${total > 1 ? "s" : ""} detected</b> across ${found.length} type${found.length > 1 ? "s" : ""}. Cleaned result is on the right.`;
+  } else {
+    verdictEl.className = "verdict clean";
+    verdictEl.innerHTML = `<b class="clean">✓ Clean — 0 hidden characters found.</b> Typography still converted to LaTeX below.`;
+  }
+
+  // clean: strip hidden (invisible classes, everywhere — mirrors texclean pass [A]),
+  // then optionally fix review classes (homoglyphs/mojibake), then spaces + LaTeX typography
+  let out = text;
+  for (const cls of CLASSES) if (!cls.review) out = out.replace(cls.re, "");
+  if (document.getElementById("opt-review").checked) out = fixReviewClasses(out);
+  out = out
+    .replace(/\u00a0|\u2007|\u2009|\u200a|\u202f|\u3000/g, " ")
+    .replace(/\u2028|\u2029/g, "\n")
+    .replace(/[ \t]+\n/g, "\n").replace(/[ \t]+$/, "");
+  lastClean = latexTypography(out);
+  output.value = lastClean;
+
+  const nTypo = (text.match(/[\u2018\u2019\u201c\u201d\u2013\u2014\u2026\u00a9\u00ae\u2122\u00b0]/g) || []).length;
+  texnoteEl.textContent = nTypo
+    ? `LaTeX pass: ${nTypo} typographic character${nTypo > 1 ? "s" : ""} converted (quotes → \`\`''\`, dashes → --/---, … → \\ldots{}).`
+    : "LaTeX pass: no typographic characters to convert.";
+}
+
+input.addEventListener("input", run);
+document.getElementById("opt-review").addEventListener("change", run);
+
+document.getElementById("btn-copy").addEventListener("click", () => {
+  if (!lastClean) return;
+  navigator.clipboard.writeText(lastClean);
+  const b = document.getElementById("btn-copy");
+  b.textContent = "Copied!";
+  setTimeout(() => (b.textContent = "Copy"), 1200);
+});
+
+document.getElementById("btn-download").addEventListener("click", () => {
+  if (!lastClean) return;
+  const blob = new Blob([lastClean], { type: "text/plain;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "clean.tex";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+document.getElementById("btn-demo").addEventListener("click", () => {
+  input.value =
+    "Smart quotes: \u201cdeep learning\u201d and \u2018stochastic\u2019 models.\n" +
+    "Hidden: cla\u200bsic, re\u00adsearch, bidi:\u202eevil\u202c, nbsp:\u00a0here.\n" +
+    "Tags: payload\U000e0041\U000e0042\U000e0043 (ABC hidden as tag chars).\n" +
+    "VS: warn\ufe0f\U000e0101 and mixed\U000e0142 selectors.\n" +
+    "Homoglyph: Te\u0430ching (that 'a' is Cyrillic, not Latin).\n" +
+    "The energy is $E = mc^2_i\u200b$ and \u00a9 2026 ACME\u2026\n";
+  run();
+});
+</script>
+</body>
+</html>
