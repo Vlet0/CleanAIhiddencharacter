@@ -3,154 +3,433 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CleanAIHiddenCharacter — Invisible Character Detector &amp; Cleaner</title>
+<title>CleanAIHiddenCharacter — Invisible Chars &amp; AI-Style Detector</title>
 <style>
   :root {
-    --bg: #0d1117; --panel: #161b22; --border: #30363d; --text: #e6edf3;
-    --muted: #8b949e; --accent: #2f81f7; --green: #3fb950; --red: #f85149;
-    --yellow: #d29922;
+    --bg: #0a0e14; --bg2: #10161f; --panel: #151d29; --border: #273245;
+    --text: #e8eef7; --muted: #93a1b5; --accent: #3b82f6; --accent2: #8b5cf6;
+    --green: #34d399; --red: #f87171; --yellow: #fbbf24; --orange: #fb923c;
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0; background: var(--bg); color: var(--text);
+    margin: 0; background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+    color: var(--text); min-height: 100vh;
     font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    min-height: 100vh;
   }
-  header { padding: 20px 24px 8px; }
-  header h1 { margin: 0 0 4px; font-size: 1.35rem; }
-  header h1 a { color: var(--text); text-decoration: none; }
-  header h1 span { color: var(--accent); }
-  header p { margin: 0; color: var(--muted); font-size: .9rem; }
-  .verdict {
-    margin: 12px 24px 0; padding: 10px 14px; border-radius: 6px;
-    border: 1px solid var(--border); font-size: .95rem; display: none;
+  header { max-width: 1280px; margin: 0 auto; padding: 28px 24px 0; text-align: center; }
+  .logo { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+  .logo span { background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .tagline { color: var(--muted); margin: 8px auto 0; max-width: 760px; font-size: .95rem; line-height: 1.5; }
+  .privacy { max-width: 1280px; margin: 18px auto 0; padding: 0 24px; }
+  .privacy .inner {
+    display: flex; align-items: center; gap: 10px; justify-content: center;
+    background: rgba(52, 211, 153, .08); border: 1px solid rgba(52, 211, 153, .35);
+    border-radius: 10px; padding: 10px 16px; font-size: .88rem; color: var(--green);
+    text-align: left;
   }
-  .verdict.dirty { display: block; border-color: var(--red); background: rgba(248,81,73,.08); }
-  .verdict.clean { display: block; border-color: var(--green); background: rgba(63,185,80,.08); }
-  .verdict b.dirty { color: var(--red); }
-  .verdict b.clean { color: var(--green); }
-  main {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
-    padding: 12px 24px 24px; height: calc(100vh - 150px); min-height: 420px;
-  }
-  @media (max-width: 800px) {
-    main { grid-template-columns: 1fr; height: auto; }
-    textarea { height: 260px !important; }
-  }
-  .pane { display: flex; flex-direction: column; min-height: 0; }
-  .pane-head {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 6px; gap: 8px;
-  }
-  .pane-head h2 { margin: 0; font-size: .95rem; color: var(--muted); font-weight: 600; }
+  .privacy b { color: var(--green); }
+  .shell { max-width: 1280px; margin: 0 auto; padding: 18px 24px 24px; }
+  .toolbar { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 0 0 16px; }
   button {
     background: var(--panel); color: var(--text); border: 1px solid var(--border);
-    border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: .85rem;
+    border-radius: 10px; padding: 10px 22px; cursor: pointer; font-size: .95rem;
+    font-weight: 600; transition: all .15s;
   }
-  button:hover { border-color: var(--accent); }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button:hover { border-color: var(--accent); transform: translateY(-1px); }
+  button.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; color: #fff; padding: 10px 28px;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: stretch; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } .pane { min-height: 340px; } }
+  .pane {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    display: flex; flex-direction: column; overflow: hidden; min-height: 480px;
+  }
+  .pane-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; border-bottom: 1px solid var(--border); gap: 8px;
+  }
+  .pane-head h2 { margin: 0; font-size: .95rem; font-weight: 700; }
+  .pane-head .hint { color: var(--muted); font-size: .78rem; font-weight: 400; }
+  .pane-body { flex: 1; position: relative; min-height: 0; display: flex; }
   textarea {
-    flex: 1; width: 100%; resize: none; background: var(--panel);
-    color: var(--text); border: 1px solid var(--border); border-radius: 6px;
-    padding: 12px; font-family: ui-monospace, Consolas, "Courier New", monospace;
-    font-size: .85rem; line-height: 1.5; white-space: pre-wrap;
+    flex: 1; width: 100%; resize: none; border: none; outline: none;
+    background: transparent; color: var(--text); padding: 14px 16px;
+    font-family: ui-monospace, Consolas, "Courier New", monospace;
+    font-size: .86rem; line-height: 1.55; white-space: pre-wrap;
   }
-  textarea:focus { outline: none; border-color: var(--accent); }
-  .report {
-    margin-top: 10px; max-height: 180px; overflow-y: auto; font-size: .8rem;
-    border: 1px solid var(--border); border-radius: 6px; background: var(--panel);
-    padding: 8px 12px; display: none;
+  .preview {
+    flex: 1; overflow-y: auto; padding: 14px 16px;
+    font-family: ui-monospace, Consolas, "Courier New", monospace;
+    font-size: .86rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word;
   }
-  .report.show { display: block; }
-  .report table { border-collapse: collapse; width: 100%; }
-  .report td, .report th { padding: 3px 8px; text-align: left; border-bottom: 1px solid var(--border); }
-  .report th { color: var(--muted); font-weight: 600; }
-  .cp { color: var(--yellow); font-family: ui-monospace, monospace; }
-  .cnt { color: var(--red); font-weight: 700; }
-  footer { padding: 0 24px 16px; color: var(--muted); font-size: .8rem; }
+  .tabs { display: flex; gap: 4px; }
+  .tab {
+    border: 1px solid var(--border); border-radius: 8px; padding: 5px 14px;
+    font-size: .8rem; background: transparent; cursor: pointer; color: var(--muted);
+  }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  mark { border-radius: 3px; padding: 0 1px; color: var(--text); }
+  mark.long  { background: rgba(251, 191, 36, .28); border-bottom: 2px solid var(--yellow); }
+  mark.vlong { background: rgba(251, 146, 60, .3);  border-bottom: 2px solid var(--orange); }
+  mark.dash  { background: rgba(248, 113, 113, .22); border-bottom: 2px solid var(--red); }
+  mark.paren { background: rgba(139, 92, 246, .22); border-bottom: 2px solid var(--accent2); }
+  mark.stiff { background: rgba(59, 130, 246, .22); border-bottom: 2px solid var(--accent); }
+  mark.typo  { background: rgba(248, 113, 113, .35); }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 14px; padding: 10px 16px; border-top: 1px solid var(--border); font-size: .75rem; color: var(--muted); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+  .scorecard {
+    margin: 16px 0 0; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px 20px; display: none;
+  }
+  .scorecard.show { display: block; }
+  .score-top { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .score-num { font-size: 2.2rem; font-weight: 800; min-width: 130px; }
+  .score-label { color: var(--muted); font-size: .85rem; }
+  .meter { flex: 1; min-width: 220px; height: 10px; border-radius: 5px; background: var(--bg); overflow: hidden; }
+  .meter > div { height: 100%; border-radius: 5px; transition: width .4s; }
+  .signals { margin: 14px 0 0; padding: 0; list-style: none; }
+  .signals li { padding: 7px 0; border-top: 1px solid var(--border); font-size: .88rem; display: flex; gap: 10px; align-items: baseline; }
+  .signals .ico { flex: 0 0 22px; text-align: center; }
+  .signals .n { color: var(--yellow); font-weight: 700; white-space: nowrap; }
+  .signals .why { color: var(--muted); font-size: .8rem; }
+  .hidden-note { color: var(--muted); font-size: .82rem; margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; display: none; }
+  .hidden-note.show { display: block; }
+  .hidden-note b { color: var(--yellow); }
+  footer { max-width: 1280px; margin: 0 auto; padding: 0 24px 28px; color: var(--muted); font-size: .8rem; text-align: center; line-height: 1.6; }
   footer a { color: var(--accent); }
-  .note { color: var(--muted); font-size: .8rem; margin-top: 6px; }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--green); color: #06281c; font-weight: 700; padding: 10px 22px;
+    border-radius: 10px; transition: transform .25s; z-index: 10;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
+
 <header>
-  <h1><a href="https://github.com/Vlet0/CleanAIhiddencharacter">Clean<span>AI</span>HiddenCharacter</a></h1>
-  <p>Paste AI-generated or copy-pasted text on the left — hidden Unicode characters
-  (zero-width steganography, bidi controls, tag characters, variation selectors,
-  homoglyphs, mojibake) are detected and stripped in your browser. Nothing is uploaded;
-  all processing is local JavaScript. Renders a LaTeX-safe result.</p>
+  <h1 class="logo">Clean<span>AI</span>HiddenCharacter</h1>
+  <p class="tagline">Two deterministic engines, zero AI, zero servers: (1) strip invisible
+  Unicode characters &amp; steganography, (2) flag AI-typical writing patterns —
+  overstuffed sentences, dash-heavy punctuation, parenthetical asides, rigid structure.</p>
 </header>
 
-<div id="verdict" class="verdict"></div>
+<div class="privacy">
+  <div class="inner">
+    <span style="font-size:1.2rem">🔒</span>
+    <span><b>Nothing is stored, logged, or uploaded — ever.</b>
+    Every byte you paste is processed locally in your browser's memory and disappears
+    when you close or refresh this page. No cookies, no analytics, no network requests
+    with your text. This page even works offline.</span>
+  </div>
+</div>
 
-<main>
-  <div class="pane">
-    <div class="pane-head">
-      <h2>Input (paste here)</h2>
-      <span>
-        <label style="font-size:.8rem;color:var(--muted);cursor:pointer">
-          <input type="checkbox" id="opt-review" checked style="vertical-align:-2px">
-          fix homoglyphs &amp; mojibake
-        </label>
-        <button id="btn-demo" title="Load a sample containing every hidden-character class">Load sample</button>
-      </span>
-    </div>
-    <textarea id="input" placeholder="Paste your text / LaTeX here…&#10;Scanning starts automatically." spellcheck="false"></textarea>
-    <div id="report" class="report"></div>
+<div class="shell">
+  <div class="toolbar">
+    <button id="btn-analyze">🔍 Detect AI-style writing</button>
+    <button id="btn-clean" class="primary">✨ Clean hidden chars → LaTeX</button>
+    <button id="btn-demo" title="Load a sample with planted hidden chars and AI-style prose">Load sample</button>
+    <button id="btn-clear">Clear</button>
   </div>
-  <div class="pane">
-    <div class="pane-head">
-      <h2>Result (cleaned)</h2>
-      <span>
-        <button id="btn-copy">Copy</button>
-        <button id="btn-download">Download .tex</button>
-      </span>
+
+  <div class="grid">
+    <div class="pane">
+      <div class="pane-head">
+        <h2>Input</h2>
+        <span class="hint">paste text / LaTeX — nothing leaves your device</span>
+      </div>
+      <div class="pane-body"><textarea id="input" spellcheck="false"
+        placeholder="Paste your text here, then press ‘Detect AI-style writing’ or ‘Clean hidden chars’…"></textarea></div>
     </div>
-    <textarea id="output" placeholder="Cleaned text appears here." spellcheck="false" readonly></textarea>
-    <div class="note" id="texnote"></div>
+
+    <div class="pane">
+      <div class="pane-head">
+        <h2>Result</h2>
+        <div class="tabs">
+          <button class="tab active" id="tab-report" data-tab="report">AI-style report</button>
+          <button class="tab" id="tab-clean" data-tab="clean">Cleaned text</button>
+        </div>
+      </div>
+      <div class="pane-body">
+        <div id="view-report" class="preview" style="display:block"><span style="color:var(--muted)">Analysis result with highlights appears here.</span></div>
+        <textarea id="view-clean" spellcheck="false" readonly style="display:none"
+          placeholder="Cleaned, LaTeX-safe text appears here after pressing ‘Clean hidden chars’."></textarea>
+      </div>
+      <div class="legend">
+        <span><i style="background:rgba(251,191,36,.5)"></i>long sentence (&gt;32 words)</span>
+        <span><i style="background:rgba(251,146,60,.5)"></i>very long (&gt;48)</span>
+        <span><i style="background:rgba(248,113,113,.4)"></i>dash / typo</span>
+        <span><i style="background:rgba(139,92,246,.4)"></i>parenthetical aside</span>
+        <span><i style="background:rgba(59,130,246,.4)"></i>formulaic connector</span>
+      </div>
+    </div>
   </div>
-</main>
+
+  <div id="scorecard" class="scorecard">
+    <div class="score-top">
+      <div>
+        <div class="score-num" id="score-num">0</div>
+        <div class="score-label">AI-style heuristic score<br>(0 = human-like, 100 = very AI-typical)</div>
+      </div>
+      <div class="meter"><div id="meter-fill" style="width:0%;background:var(--green)"></div></div>
+    </div>
+    <ul class="signals" id="signals"></ul>
+    <div class="hidden-note" id="hidden-note"></div>
+  </div>
+</div>
 
 <footer>
-  Character-level steganography is removed 100% (it lives in invisible codepoints).
-  Statistical token watermarks (green-list / SynthID-Text) live in <i>word choices</i>,
-  not bytes — no tool can remove them. Read the
-  <a href="https://github.com/Vlet0/CleanAIhiddencharacter#background-two-kinds-of-watermark-in-ai-text">background</a>
-  in the repo. ⚠️ Bidi/homoglyph findings may indicate spoofing — review before cleaning.
+  Invisible-character steganography is removed 100% — it lives in codepoints, so a regex kills it.
+  Statistical token watermarks (green-list / SynthID-Text) live in <i>word choices</i>, not bytes — no tool can remove them.
+  The AI-style score is a <b>heuristic</b>: a high score means the text <i>looks</i> AI-typical, not that it was generated by AI.
+  <a href="https://github.com/Vlet0/CleanAIhiddencharacter">GitHub repo</a> ·
+  <a href="https://github.com/Vlet0/CleanAIhiddencharacter/blob/main/SKILL.md">SKILL.md</a>
 </footer>
+
+<div class="toast" id="toast">Copied!</div>
 
 <script>
 "use strict";
 
-// ---- hidden-character classes (same spec as scripts/texclean.py / SKILL.md) ----
-const CLASSES = [
-  { key: "zero-width",       label: "Zero-width / invisible format",      re: /[\u200b\u200c\u200d\u2060\ufeff\u180e\u2061-\u2064\u206a-\u206f]/g,
-    names: { "\u200b": "ZERO WIDTH SPACE", "\u200c": "ZERO WIDTH NON-JOINER", "\u200d": "ZERO WIDTH JOINER", "\u2060": "WORD JOINER", "\ufeff": "ZERO WIDTH NO-BREAK SPACE (BOM)", "\u180e": "MONGOLIAN VOWEL SEPARATOR", "\u2061": "FUNCTION APPLICATION", "\u2062": "INVISIBLE TIMES", "\u2063": "INVISIBLE SEPARATOR", "\u2064": "INVISIBLE PLUS", "\u206a": "INHIBIT SYMMETRIC SWAP", "\u206b": "ACTIVATE SYMMETRIC SWAP", "\u206c": "INHIBIT ARABIC FORM SHAPING", "\u206d": "ACTIVATE ARABIC FORM SHAPING", "\u206e": "NATIONAL DIGIT SHAPES", "\u206f": "NOMINAL DIGIT SHAPES" } },
-  { key: "bidi",             label: "Bidi controls (reorder text!)",      re: /[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/g,
-    names: { "\u061c":"ARABIC LETTER MARK", "\u200e":"LEFT-TO-RIGHT MARK", "\u200f":"RIGHT-TO-LEFT MARK", "\u202a":"LRE EMBEDDING", "\u202b":"RLE EMBEDDING", "\u202c":"POP DIRECTIONAL", "\u202d":"LRO OVERRIDE", "\u202e":"RLO OVERRIDE", "\u2066":"LRI ISOLATE", "\u2067":"RLI ISOLATE", "\u2068":"FSI FIRST-STRONG", "\u2069":"PDI POP ISOLATE" } },
-  { key: "tags",             label: "Tag characters (hidden ASCII)",      re: /[\u{e0000}-\u{e007f}]/gu,
-    names: c => "TAG " + (c ? "U+" + c.codePointAt(0).toString(16).toUpperCase() : "") },
-  { key: "variation",        label: "Variation selectors (hidden bits)",  re: /[\ufe00-\ufe0f\u{e0100}-\u{e01ef}]/gu,
-    names: c => "VARIATION SELECTOR" },
-  { key: "soft-hyphen",      label: "Soft hyphen",                        re: /[\u00ad]/g, names: { "\u00ad": "SOFT HYPHEN" } },
-  { key: "controls",         label: "Stray control characters",           re: /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g,
-    names: { "\x7f": "DELETE", "\x85": "NEL" } },
-  { key: "confusables",      label: "Homoglyph (lookalike letter)",       re: /[\u0410\u0412\u0415\u041a\u041c\u041d\u041e\u0420\u0421\u0422\u0425\u0430\u0435\u043e\u0440\u0441\u0445\u0443\u0456\u0455\u0458\u04bb\u0501\u0391\u039f\u03b1\u03bd\u03c1\u0261]/g,
-    review: true, fix: true,
-    latin: { "\u0410":"A","\u0412":"B","\u0415":"E","\u041a":"K","\u041c":"M","\u041d":"H","\u041e":"O","\u0420":"P","\u0421":"C","\u0422":"T","\u0425":"X","\u0430":"a","\u0435":"e","\u043e":"o","\u0440":"p","\u0441":"c","\u0445":"x","\u0443":"y","\u0456":"i","\u0455":"s","\u0458":"j","\u04bb":"h","\u0501":"d","\u0391":"A","\u039f":"O","\u03b1":"a","\u03bd":"v","\u03c1":"p","\u0261":"g" } },
-  { key: "mojibake",         label: "Mojibake (UTF-8 read as latin-1)",   re: /\u00c3[\u0080-\u00bf]|\u00c2[\u0080-\u00bf]|\u00e2\u20ac[\u0080-\u00bf]|\u00d0[\u0080-\u00bf]|\u00d1[\u0080-\u00bf]/g,
-    review: true, fix: true },
+/* ============================================================
+   ENGINE 1 — hidden / invisible Unicode characters
+   Same spec as scripts/texclean.py and SKILL.md
+   ============================================================ */
+const INVISIBLE = [
+  /[\u200b\u200c\u200d\u2060\ufeff\u180e\u2061-\u2064\u206a-\u206f]/g,   // zero-width
+  /[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/g,                     // bidi
+  /[\u{e0000}-\u{e007f}]/gu,                                             // tag chars
+  /[\ufe00-\ufe0f\u{e0100}-\u{e01ef}]/gu,                                // variation selectors
+  /[\u00ad]/g,                                                           // soft hyphen
+  /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g,                                   // C0 + DEL
+  /[\u0080-\u009f]/g,                                                    // C1
 ];
 
-const CP = c => "U+" + c.codePointAt(0).toString(16).toUpperCase().padStart(4, "0");
-function cpName(c, cls) {
-  if (typeof cls.names === "function") return cls.names(c);
-  return cls.names[c] || "";
+const HOMOGLYPH = { "\u0410":"A","\u0412":"B","\u0415":"E","\u041a":"K","\u041c":"M",
+  "\u041d":"H","\u041e":"O","\u0420":"P","\u0421":"C","\u0422":"T","\u0425":"X",
+  "\u0430":"a","\u0435":"e","\u043e":"o","\u0440":"p","\u0441":"c","\u0445":"x",
+  "\u0443":"y","\u0456":"i","\u0455":"s","\u0458":"j","\u04bb":"h","\u0501":"d",
+  "\u0391":"A","\u039f":"O","\u03b1":"a","\u03bd":"v","\u03c1":"p","\u0261":"g" };
+const HOMOGLYPH_RE = /[\u0410\u0412\u0415\u041a\u041c\u041d\u041e\u0420\u0421\u0422\u0425\u0430\u0435\u043e\u0440\u0441\u0445\u0443\u0456\u0455\u0458\u04bb\u0501\u0391\u039f\u03b1\u03bd\u03c1\u0261]/g;
+const MOJIBAKE_RE = /\u00c3[\u0080-\u00bf]|\u00c2[\u0080-\u00bf]|\u00e2\u20ac[\u0080-\u00bf]|\u00d0[\u0080-\u00bf]|\u00d1[\u0080-\u00bf]/g;
+
+function countInvisible(text) {
+  let total = 0;
+  for (const re of INVISIBLE)
+    total += (text.match(new RegExp(re.source, re.flags)) || []).length;
+  return total;
 }
 
-// ---- LaTeX-typography pass (prose only — mirrors texclean pass [C]) ----
-function latexTypography(s) {
-  return s
+/* ============================================================
+   ENGINE 2 — AI-style heuristics (purely mechanical)
+   ============================================================ */
+const CONNECTORS = [
+  "moreover", "furthermore", "additionally", "in addition", "however",
+  "therefore", "thus", "consequently", "notably", "importantly",
+  "overall", "in conclusion", "it is worth noting", "it is important to note",
+  "delve", "leverage", "robust", "seamless", "pivotal", "crucial",
+];
+
+function splitSentences(text) {
+  // protect $math$ from sentence splitting
+  const math = [];
+  const guarded = text.replace(/\$[^$\n]*\$/g, m => { math.push(m); return "\x00M" + (math.length - 1) + "\x00"; });
+  const parts = guarded
+    .split(/(?<=[.!?])\s+(?=[A-Z\u00c0-\u1ef9"'`$(])/g)
+    .map(s => s.replace(/\x00M(\d+)\x00/g, (_, i) => math[+i]));
+  return parts.filter(s => s.trim());
+}
+
+function words(s) {
+  return (s.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || []);
+}
+
+function analyzeStyle(text) {
+  const signals = [];
+  const marks = [];
+  const sentences = splitSentences(text);
+
+  // 1. long sentences -> yellow / orange
+  let pos = 0, longCount = 0, vlongCount = 0;
+  for (const sent of sentences) {
+    const idx = text.indexOf(sent, pos);
+    const start = idx >= 0 ? idx : pos;
+    const end = start + sent.length;
+    pos = end;
+    const wc = words(sent).length;
+    if (wc > 48) { marks.push({ start, end, cls: "vlong" }); vlongCount++; }
+    else if (wc > 32) { marks.push({ start, end, cls: "long" }); longCount++; }
+  }
+  if (longCount || vlongCount)
+    signals.push({ n: longCount + vlongCount, ico: "🟡",
+      what: (longCount + vlongCount) + " overstuffed sentence(s)",
+      why: "AI models rarely stop a sentence; humans breathe. Sentences over 32 words are highlighted yellow, over 48 orange." });
+
+  // 2. dashes used as connective tissue
+  const dashRe = /---|\u2014|--(?=\s|\p{L})/gu;
+  let m, dashCount = 0;
+  while ((m = dashRe.exec(text)) !== null) {
+    marks.push({ start: m.index, end: m.index + m[0].length, cls: "dash" });
+    dashCount++;
+  }
+  if (dashCount >= 2)
+    signals.push({ n: dashCount, ico: "📕",
+      what: dashCount + " em/en-dash insertion(s) mid-prose",
+      why: "AI output leans heavily on — as a connector. Human prose uses it far less often." });
+
+  // 3. parenthetical asides (the () explanation habit)
+  const parenRe = /\([^)\n]{2,}\)/g;
+  const parens = [];
+  while ((m = parenRe.exec(text)) !== null) parens.push(m);
+  for (const p of parens)
+    marks.push({ start: p.index, end: p.index + p[0].length, cls: "paren" });
+  if (parens.length >= 2)
+    signals.push({ n: parens.length, ico: "💬",
+      what: parens.length + " parenthetical explanation(s)",
+      why: "AI habitually adds () asides right after a claim to explain itself. Highlighted purple." });
+
+  // 4. formulaic connectors / vocabulary
+  const connHits = [];
+  for (const c of CONNECTORS) {
+    const re = new RegExp("\\b" + c.replace(/ /g, "\\s+") + "\\b", "gi");
+    const hits = text.match(re);
+    if (hits) connHits.push(...hits);
+  }
+  if (connHits.length)
+    signals.push({ n: connHits.length, ico: "🔗",
+      what: connHits.length + " formulaic connector/word(s) — " +
+        [...new Set(connHits.map(h => h.toLowerCase()))].slice(0, 6).join(", "),
+      why: "Stock transitions and buzz-words (Moreover, Furthermore, robust, seamless…) are strong AI tells." });
+
+  // 5. rigid structure: same sentence starter repeated
+  const starters = {};
+  for (const s of sentences) {
+    const w = words(s);
+    if (w.length) {
+      const k = w[0].toLowerCase();
+      starters[k] = (starters[k] || 0) + 1;
+    }
+  }
+  const repeats = Object.entries(starters).filter(([, n]) => n >= 3);
+  if (repeats.length)
+    signals.push({ n: repeats.length, ico: "📐",
+      what: "repeated sentence starters: " + repeats.map(([w, n]) => `"${w}"×${n}`).join(", "),
+      why: "Uniform openers across sentences indicate template-like generation." });
+
+  // 6. mechanical typos / spacing artifacts
+  let typoCount = 0;
+  const dblWord = /\b(\p{L}{2,})(\s+)\1\b/giu;
+  while ((m = dblWord.exec(text)) !== null) {
+    marks.push({ start: m.index, end: m.index + m[0].length, cls: "typo" });
+    typoCount++;
+  }
+  const noSpaceComma = /\p{L},\p{L}/gu;
+  while ((m = noSpaceComma.exec(text)) !== null) {
+    marks.push({ start: m.index, end: m.index + 3, cls: "typo" });
+    typoCount++;
+  }
+  const spaceBeforePunct = /\s+[,.;!?]/g;
+  while ((m = spaceBeforePunct.exec(text)) !== null) {
+    marks.push({ start: m.index, end: m.index + m[0].length, cls: "typo" });
+    typoCount++;
+  }
+  const dblSpace = /\S(  +)\S/g;
+  while ((m = dblSpace.exec(text)) !== null) {
+    marks.push({ start: m.index, end: m.index + m[0].length, cls: "typo" });
+    typoCount++;
+  }
+  if (typoCount)
+    signals.push({ n: typoCount, ico: "✏️",
+      what: typoCount + " mechanical writing artifact(s) (doubled words, missing spaces…)",
+      why: "Red-highlighted. Not proof of AI, but worth reviewing before you publish." });
+
+  const score = Math.min(100,
+      (longCount + vlongCount) * 7
+    + dashCount * 5
+    + parens.length * 6
+    + connHits.length * 8
+    + repeats.length * 12
+    + typoCount * 3);
+
+  return { score, signals, marks, nSent: sentences.length };
+}
+
+/* ============================================================
+   UI wiring
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const input = $("input");
+const viewReport = $("view-report");
+const viewClean = $("view-clean");
+const scorecard = $("scorecard");
+let lastClean = "";
+
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function escapeHtmlWithMarks(text, marks) {
+  marks.sort((a, b) => a.start - b.start || b.end - a.end);
+  const CLSNAME = { long: "long", vlong: "vlong", dash: "dash", paren: "paren",
+    stiff: "stiff", typo: "typo" };
+  let html = "", cur = 0;
+  for (const mk of marks) {
+    if (mk.start < cur) continue; // overlap: keep first
+    html += esc(text.slice(cur, mk.start));
+    html += `<mark class="${CLSNAME[mk.cls] || ""}">` + esc(text.slice(mk.start, mk.end)) + "</mark>";
+    cur = mk.end;
+  }
+  html += esc(text.slice(cur));
+  return html;
+}
+
+function analyze() {
+  const text = input.value;
+  if (!text.trim()) { input.focus(); return; }
+  const res = analyzeStyle(text);
+
+  viewReport.innerHTML = res.marks.length
+    ? escapeHtmlWithMarks(text, res.marks)
+    : '<span style="color:var(--muted)">No AI-style patterns flagged in this text.</span>';
+
+  scorecard.classList.add("show");
+  $("score-num").textContent = res.score;
+  $("score-num").style.color = res.score >= 60 ? "var(--red)" : res.score >= 30 ? "var(--yellow)" : "var(--green)";
+  const fill = $("meter-fill");
+  fill.style.width = res.score + "%";
+  fill.style.background = res.score >= 60 ? "var(--red)" : res.score >= 30 ? "var(--yellow)" : "var(--green)";
+
+  $("signals").innerHTML = res.signals.length
+    ? res.signals.map(s =>
+        `<li><span class="ico">${s.ico}</span><span><span class="n">×${s.n}</span> ${esc(s.what)}<br><span class="why">${esc(s.why)}</span></span></li>`).join("")
+    : '<li><span class="ico">✅</span><span>No AI-typical patterns detected by the heuristics.</span></li>';
+
+  const inv = countInvisible(text);
+  const hn = $("hidden-note");
+  hn.classList.toggle("show", inv > 0);
+  hn.innerHTML = inv
+    ? `⚠ Also found <b>${inv} invisible Unicode character(s)</b> (zero-width, tag chars, variation selectors…) — press <b>Clean hidden chars</b> to strip them.`
+    : "";
+  switchTab("report");
+}
+
+function clean() {
+  const text = input.value;
+  if (!text.trim()) { input.focus(); return; }
+
+  let out = text;
+  for (const re of INVISIBLE) out = out.replace(new RegExp(re.source, re.flags), "");
+  out = out.replace(HOMOGLYPH_RE, c => HOMOGLYPH[c] || c);
+  out = out.replace(MOJIBAKE_RE, seq => { try { return decodeURIComponent(escape(seq)); } catch (e) { return seq; } });
+  out = out
+    .replace(/\u00a0|\u2007|\u2009|\u200a|\u202f|\u3000/g, " ")
+    .replace(/\u2028|\u2029/g, "\n")
+    .replace(/[ \t]+\n/g, "\n").replace(/[ \t]+$/, "");
+  // LaTeX typography pass (pass [C])
+  lastClean = out
     .replace(/\u2018/g, "`").replace(/\u2019/g, "'")
     .replace(/\u201c/g, "``").replace(/\u201d/g, "''")
     .replace(/\u2013/g, "--").replace(/\u2014/g, "---")
@@ -159,133 +438,54 @@ function latexTypography(s) {
     .replace(/\u00ae/g, "\\textregistered{}")
     .replace(/\u2122/g, "\\texttrademark{}")
     .replace(/\u00b0/g, "\\textdegree{}");
+
+  viewClean.value = lastClean;
+  switchTab("clean");
+  toast("Cleaned — result is LaTeX-safe");
 }
 
-function analyze(text) {
-  const found = []; // {cls, char, count, first}
-  let total = 0;
-  for (const cls of CLASSES) {
-    const map = new Map();
-    let m;
-    cls.re.lastIndex = 0;
-    while ((m = cls.re.exec(text)) !== null) {
-      const c = m[0];
-      if (!map.has(c)) map.set(c, { count: 0, first: m.index });
-      map.get(c).count++;
-    }
-    for (const [c, info] of map) {
-      found.push({ cls, char: c, cp: CP(c), name: cpName(c, cls), ...info });
-      total += info.count;
-    }
-  }
-  return { found, total };
+function switchTab(which) {
+  $("tab-report").classList.toggle("active", which === "report");
+  $("tab-clean").classList.toggle("active", which === "clean");
+  viewReport.style.display = which === "report" ? "block" : "none";
+  viewClean.style.display = which === "clean" ? "block" : "none";
 }
 
-function fixReviewClasses(s) {
-  for (const cls of CLASSES) {
-    if (!cls.fix) continue;
-    if (cls.key === "confusables") {
-      s = s.replace(cls.re, c => cls.latin[c] || c);
-    } else if (cls.key === "mojibake") {
-      s = s.replace(cls.re, seq => {
-        try { return decodeURIComponent(escape(seq)); }
-        catch (e) { return seq; }
-      });
-    }
-  }
-  return s;
+let toastTimer = null;
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 1600);
 }
 
-const input = document.getElementById("input");
-const output = document.getElementById("output");
-const reportEl = document.getElementById("report");
-const verdictEl = document.getElementById("verdict");
-const texnoteEl = document.getElementById("texnote");
-
-let lastClean = "";
-
-function run() {
-  const text = input.value;
-  if (!text) {
-    verdictEl.className = "verdict";
-    reportEl.className = "report";
-    output.value = "";
-    texnoteEl.textContent = "";
-    return;
-  }
-  const { found, total } = analyze(text);
-
-  // report table
-  if (found.length) {
-    reportEl.className = "report show";
-    reportEl.innerHTML =
-      "<table><tr><th>Codepoint</th><th>Class</th><th>Name</th><th>Count</th><th></th></tr>" +
-      found.map(f =>
-        `<tr><td class="cp">${f.cp}</td><td>${f.cls.label}</td>` +
-        `<td>${f.name || "—"}</td><td class="cnt">${f.count}</td>` +
-        `<td>${f.cls.review ? (document.getElementById("opt-review").checked ? "fixed" : "review") : "removed"}</td></tr>`).join("") +
-      "</table>";
-  } else {
-    reportEl.className = "report show";
-    reportEl.innerHTML = "<i>No hidden characters found — input is already clean.</i>";
-  }
-
-  if (total > 0) {
-    verdictEl.className = "verdict dirty";
-    verdictEl.innerHTML = `<b class="dirty">⚠ ${total} hidden character${total > 1 ? "s" : ""} detected</b> across ${found.length} type${found.length > 1 ? "s" : ""}. Cleaned result is on the right.`;
-  } else {
-    verdictEl.className = "verdict clean";
-    verdictEl.innerHTML = `<b class="clean">✓ Clean — 0 hidden characters found.</b> Typography still converted to LaTeX below.`;
-  }
-
-  // clean: strip hidden (invisible classes, everywhere — mirrors texclean pass [A]),
-  // then optionally fix review classes (homoglyphs/mojibake), then spaces + LaTeX typography
-  let out = text;
-  for (const cls of CLASSES) if (!cls.review) out = out.replace(cls.re, "");
-  if (document.getElementById("opt-review").checked) out = fixReviewClasses(out);
-  out = out
-    .replace(/\u00a0|\u2007|\u2009|\u200a|\u202f|\u3000/g, " ")
-    .replace(/\u2028|\u2029/g, "\n")
-    .replace(/[ \t]+\n/g, "\n").replace(/[ \t]+$/, "");
-  lastClean = latexTypography(out);
-  output.value = lastClean;
-
-  const nTypo = (text.match(/[\u2018\u2019\u201c\u201d\u2013\u2014\u2026\u00a9\u00ae\u2122\u00b0]/g) || []).length;
-  texnoteEl.textContent = nTypo
-    ? `LaTeX pass: ${nTypo} typographic character${nTypo > 1 ? "s" : ""} converted (quotes → \`\`''\`, dashes → --/---, … → \\ldots{}).`
-    : "LaTeX pass: no typographic characters to convert.";
-}
-
-input.addEventListener("input", run);
-document.getElementById("opt-review").addEventListener("change", run);
-
-document.getElementById("btn-copy").addEventListener("click", () => {
-  if (!lastClean) return;
-  navigator.clipboard.writeText(lastClean);
-  const b = document.getElementById("btn-copy");
-  b.textContent = "Copied!";
-  setTimeout(() => (b.textContent = "Copy"), 1200);
+$("btn-analyze").addEventListener("click", analyze);
+$("btn-clean").addEventListener("click", clean);
+$("tab-report").addEventListener("click", () => switchTab("report"));
+$("tab-clean").addEventListener("click", () => switchTab("clean"));
+$("btn-clear").addEventListener("click", () => {
+  input.value = ""; viewClean.value = "";
+  viewReport.innerHTML = '<span style="color:var(--muted)">Analysis result with highlights appears here.</span>';
+  scorecard.classList.remove("show");
+  input.focus();
 });
-
-document.getElementById("btn-download").addEventListener("click", () => {
-  if (!lastClean) return;
-  const blob = new Blob([lastClean], { type: "text/plain;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "clean.tex";
-  a.click();
-  URL.revokeObjectURL(a.href);
-});
-
-document.getElementById("btn-demo").addEventListener("click", () => {
+$("btn-demo").addEventListener("click", () => {
   input.value =
-    "Smart quotes: \u201cdeep learning\u201d and \u2018stochastic\u2019 models.\n" +
-    "Hidden: cla\u200bsic, re\u00adsearch, bidi:\u202eevil\u202c, nbsp:\u00a0here.\n" +
-    "Tags: payload\U000e0041\U000e0042\U000e0043 (ABC hidden as tag chars).\n" +
-    "VS: warn\ufe0f\U000e0101 and mixed\U000e0142 selectors.\n" +
-    "Homoglyph: Te\u0430ching (that 'a' is Cyrillic, not Latin).\n" +
+    "Deep learning is a powerful and \u2014 crucially \u2014 scalable paradigm, and moreover it is\n" +
+    "important to note that modern architectures (transformers, in particular) have reshaped\n" +
+    "the entire landscape of natural language processing, computer vision, speech recognition,\n" +
+    "and multimodal reasoning in ways that are both technically sophisticated and seamlessly\n" +
+    "integrated into everyday applications which leverage robust and pivotal frameworks that\n" +
+    "continue to expand the already remarkable and notably expanding boundaries of what is\n" +
+    "possible for automated systems in the contemporary technological era of today.\n" +
+    "\n" +
+    "Hidden: cla\u200bsic, re\u00adsearch, bidi:\u202eevil\u202c, tags\u{e0041}\u{e0042}, vs\ufe0f\u{e0101}, Te\u0430ching.\n" +
+    "Typos here:the the duplicated word ,like this  and  double spaces.\n" +
     "The energy is $E = mc^2_i\u200b$ and \u00a9 2026 ACME\u2026\n";
-  run();
+});
+input.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") analyze();
 });
 </script>
 </body>
