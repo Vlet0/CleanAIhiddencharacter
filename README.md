@@ -4,6 +4,8 @@
 
 **Deterministically strip invisible Unicode characters, zero-width steganography, homoglyphs and mojibake from AI-generated text before compiling or publishing — pure algorithm, no AI, fully verifiable.**
 
+**🌐 Try it in the browser — no install:** [vlet0.github.io/CleanAIhiddencharacter](https://vlet0.github.io/CleanAIhiddencharacter/) (paste left → cleaned LaTeX-safe result right; 100% client-side).
+
 ---
 
 ## The problem this solves

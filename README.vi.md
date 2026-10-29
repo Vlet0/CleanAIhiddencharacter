@@ -4,6 +4,8 @@
 
 **Vệ sinh ký tự ẩn trong văn bản AI trước khi xuất bản / biên dịch LaTeX — bằng thuật toán thuần túy, xác định được 100%, không cần AI.**
 
+**🌐 Dùng ngay trên web — không cần cài:** [vlet0.github.io/CleanAIhiddencharacter](https://vlet0.github.io/CleanAIhiddencharacter/) (dán bên trái → kết quả sạch an toàn LaTeX bên phải; xử lý 100% trong trình duyệt).
+
 ---
 
 ## Vấn đề nào được giải quyết?
