@@ -160,7 +160,7 @@ def hidden_pass(s, counts):
             counts["tag characters removed"] += 1
         elif VS_LO1 <= o <= VS_HI1 or VS_LO2 <= o <= VS_HI2:
             counts["variation selectors removed"] += 1
-        elif o < 32 and ch not in "\t\n\r":
+        elif o < 32 and ch not in "\t\n\r" or o == 0x7F:
             counts["stray C0 controls removed"] += 1
         elif 0x80 <= o <= 0x9F:
             counts["C1 controls removed"] += 1
@@ -264,7 +264,13 @@ def clean_document(text, args, counts):
         pos = e
     if pos < len(text):
         parts.append(text_pass(text[pos:], args, counts))
-    return "".join(parts), len(spans)
+    clean = "".join(parts)
+    # the segmentation keeps the space before inline math intact, so the very
+    # end of the document is handled here instead of inside text_pass
+    clean, n = re.subn(r"[ \t]+\Z", "", clean)
+    if n:
+        counts["final line trailing whitespace"] += n
+    return clean, len(spans)
 
 
 # ------------------------------------------------------------------ audits
@@ -323,11 +329,6 @@ def process_text_file(path, args):
         text = text.replace("\r\n", "\n")
 
     clean, n_protected = clean_document(text, args, counts)
-    # the segmentation keeps the space before inline math intact, so the very
-    # end of the file is handled here instead of inside text_pass
-    clean, n = re.subn(r"[ \t]+\Z", "", clean)
-    if n:
-        counts["final line trailing whitespace"] += n
     findings = audit(clean)
 
     out = write_output(path, clean, args)
