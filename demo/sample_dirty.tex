@@ -1,0 +1,25 @@
+﻿% sample_dirty.tex -- planted artifacts for testing texclean
+\documentclass{article}
+\usepackage{amsmath}
+\begin{document}
+
+Smart quotes: “deep learning” and ‘stochastic’ models.
+Dashes: an en–dash, an em—dash, ellipsis… and © 2026 ACME.
+Hidden: cla​sic, re­search, bidi:‮evil‬, nbsp: here.
+Tags: pay​load󠁁󠁂󠁃 (ABC hidden as tag chars).
+VS: warn️󠄁 and mixed󠅂 selectors.
+Homoglyph: Teаching (that 'a' is Cyrillic, not Latin).
+Mojibake: NhÃ³m nghiên cứu (NhÃ³m is broken, nghiên is legit).
+The energy is $E = mc^2_i​$ and unicode in math stays: $a — b$.
+
+\begin{verbatim}
+code "quoted — dash" and cla​sic inside verbatim
+\end{verbatim}
+
+\begin{equation}
+\alpha + ­\beta = \gamma
+\end{equation}
+
+Trailing whitespace here   
+Fine Vietnamese stays: đào tạo và nghiên cứu.
+\end{document}
